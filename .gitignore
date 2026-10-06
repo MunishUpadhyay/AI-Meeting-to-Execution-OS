@@ -1,0 +1,47 @@
+# Python
+backend/.venv/
+.venv/
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+out/
+.nuxt/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Generated
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & Temporary Files
+*.log
+logs/
+tmp/
+temp/
+scratch/
+.cache/
