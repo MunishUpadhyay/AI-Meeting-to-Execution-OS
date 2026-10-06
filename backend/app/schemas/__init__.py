@@ -15,6 +15,7 @@ from app.schemas.risk import (
     ProjectRiskSummary,
     ProjectRisksResponse,
 )
+from app.schemas.speech import MeetingTranscribeResponse
 
 __all__ = [
     "ProjectCreate",
@@ -38,5 +39,7 @@ __all__ = [
     "Risk",
     "ProjectRiskSummary",
     "ProjectRisksResponse",
+    "MeetingTranscribeResponse",
 ]
+
 

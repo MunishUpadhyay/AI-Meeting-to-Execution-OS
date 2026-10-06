@@ -67,7 +67,7 @@ AI Analysis
 
 ## Current Status
 
-`Phase 4 — Execution & Risk Intelligence`
+`Phase 5 — Local Speech-to-Text Integration`
 
 ## Roadmap
 
@@ -76,10 +76,18 @@ AI Analysis
 - [x] **Phase 2 — AI Extraction Pipeline**
 - [x] **Phase 3 — Frontend Dashboard**
 - [x] **Phase 4 — Execution & Risk Intelligence**
-- [ ] **Phase 5 — Moonshine Speech Integration**
+- [x] **Phase 5 — Local Speech-to-Text Integration**
 - [ ] **Phase 6 — RAG / Historical Meeting Intelligence**
 - [ ] **Phase 7 — ML-based Delay Prediction**
 - [ ] **Phase 8 — Final Integration / Testing / Deployment**
+
+## Speech-to-Text Integration (Phase 5)
+
+A local, privacy-focused speech recognition pipeline powered by Useful Sensors' **Moonshine** engine:
+- **`POST /meetings/{id}/transcribe`**: Accepts uploaded audio files (`.wav`, `.mp3`, `.m4a`, `.ogg`, `.webm`) or live browser mic recordings.
+- **Transcript Generation**: Converts speech to text locally on CPU without external cloud APIs.
+- **Seamless Convergence**: The generated transcript updates `Meeting.transcript`, allowing users to review before running Qwen 2.5 AI extraction.
+
 
 ## Execution & Risk Engine (Phase 4)
 

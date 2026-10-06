@@ -1,10 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import shutil
+import tempfile
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Meeting
-from app.schemas import MeetingCreate, MeetingResponse
+from app.schemas import MeetingCreate, MeetingResponse, MeetingTranscribeResponse
+from app.services.speech_service import (
+    speech_service,
+    SpeechServiceException,
+    SpeechServiceUnavailableException,
+    InvalidAudioException,
+)
 
 router = APIRouter(tags=["meetings"])
+
+ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".ogg", ".webm", ".flac", ".aac", ".mp4"}
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
 
 @router.post("/projects/{project_id}/meetings", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
@@ -47,3 +60,85 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
             detail=f"Meeting with ID {meeting_id} not found"
         )
     return meeting
+
+
+@router.post("/meetings/{meeting_id}/transcribe", response_model=MeetingTranscribeResponse, status_code=status.HTTP_200_OK)
+def transcribe_meeting(
+    meeting_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meeting with ID {meeting_id} not found",
+        )
+
+    if not file or not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No audio file was uploaded",
+        )
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file format '{ext}'. Allowed formats: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+        )
+
+    temp_filename = f"audio_{uuid.uuid4().hex}{ext}"
+    temp_path = os.path.join(tempfile.gettempdir(), temp_filename)
+
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        file_size = os.path.getsize(temp_path)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Audio file size ({file_size / (1024*1024):.1f}MB) exceeds 50MB limit",
+            )
+
+        if file_size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded audio file is empty (0 bytes)",
+            )
+
+        transcript = speech_service.transcribe_audio(temp_path)
+
+        meeting.transcript = transcript
+        db.commit()
+        db.refresh(meeting)
+
+        return MeetingTranscribeResponse(
+            meeting_id=meeting.id,
+            transcript=transcript,
+            status="transcribed",
+        )
+    except HTTPException:
+        raise
+    except InvalidAudioException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except SpeechServiceUnavailableException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except SpeechServiceException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass

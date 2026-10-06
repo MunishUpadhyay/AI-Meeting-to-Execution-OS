@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,8 +11,12 @@ import {
   ShieldAlert,
   Clock,
   AlertCircle,
+  Mic,
+  Square,
+  Upload,
+  FileAudio,
 } from 'lucide-react';
-import { getMeeting, analyzeMeeting, getDecisions, getTasks } from '../services/api';
+import { getMeeting, analyzeMeeting, getDecisions, getTasks, transcribeMeeting } from '../services/api';
 import type { Meeting, Task, Decision, MeetingAnalysisResponse } from '../types';
 import { DecisionList } from '../components/DecisionList';
 import { TaskCard } from '../components/TaskCard';
@@ -35,6 +39,19 @@ export const MeetingDetails: React.FC = () => {
   // Analysis Trigger State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // Speech-to-Text State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+  const [transcriptionSuccess, setTranscriptionSuccess] = useState<string | null>(null);
+
+  // Browser Mic Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
 
   const loadData = async () => {
     if (isNaN(mId)) return;
@@ -62,6 +79,82 @@ export const MeetingDetails: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [mId, pId]);
+
+  // Handle File Selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setTranscriptionError(null);
+      setTranscriptionSuccess(null);
+    }
+  };
+
+  // Handle Audio Transcription with Moonshine
+  const handleTranscribe = async () => {
+    if (!selectedFile || isTranscribing || isNaN(mId)) return;
+
+    setIsTranscribing(true);
+    setTranscriptionError(null);
+    setTranscriptionSuccess(null);
+
+    try {
+      const response = await transcribeMeeting(mId, selectedFile);
+      setMeeting((prev) => (prev ? { ...prev, transcript: response.transcript } : prev));
+      setTranscriptionSuccess('✓ Audio transcribed successfully using local Moonshine engine!');
+      setSelectedFile(null);
+    } catch (err) {
+      setTranscriptionError((err as Error).message || 'Speech-to-text transcription failed.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  // Browser Microphone Recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const recordedFile = new File([audioBlob], `recorded_audio_${Date.now()}.wav`, {
+          type: 'audio/wav',
+        });
+        setSelectedFile(recordedFile);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      setTranscriptionError(null);
+      setTranscriptionSuccess(null);
+
+      timerRef.current = window.setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch {
+      setTranscriptionError('Microphone access denied or unavailable in this browser.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+  };
 
   const handleAnalyze = async () => {
     if (isAnalyzing || isNaN(mId)) return;
@@ -150,13 +243,16 @@ export const MeetingDetails: React.FC = () => {
             <span className="text-xs text-indigo-400 font-mono font-semibold uppercase tracking-wider block mb-1">
               MEETING INTELLIGENCE #{meeting.id}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{meeting.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              {meeting.title}
+            </h1>
           </div>
 
           <button
             onClick={handleAnalyze}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || !meeting.transcript.trim()}
             className={`inline-flex items-center space-x-2.5 px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-xl ${
+
               isAnalyzing
                 ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700'
                 : isAnalyzed
@@ -185,7 +281,8 @@ export const MeetingDetails: React.FC = () => {
             <div>
               <p className="font-semibold">Local LLM Analysis in Progress...</p>
               <p className="text-[11px] text-indigo-400/90">
-                Running Qwen 2.5 local inference via Ollama. Please allow a few seconds for task & decision extraction.
+                Running Qwen 2.5 local inference via Ollama. Please allow a few seconds for task &
+                decision extraction.
               </p>
             </div>
           </div>
@@ -198,6 +295,87 @@ export const MeetingDetails: React.FC = () => {
               <p className="font-bold">Analysis Failed</p>
               <p className="text-rose-400">{analysisError}</p>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Local Moonshine Speech-to-Text Panel */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
+        <div className="flex items-center space-x-2 text-indigo-400 border-b border-slate-800/80 pb-3">
+          <FileAudio className="w-5 h-5" />
+          <h3 className="font-bold text-lg text-white">Local Speech-to-Text (Moonshine Engine)</h3>
+        </div>
+
+        <p className="text-xs text-slate-400">
+          Upload an audio recording (.wav, .mp3, .m4a, .ogg) or use browser microphone recording to generate a transcript locally.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-4 pt-2">
+          {/* File Upload Input */}
+          <label className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold cursor-pointer transition-colors">
+            <Upload className="w-4 h-4 text-indigo-400" />
+            <span>{selectedFile ? selectedFile.name : 'Choose Audio File'}</span>
+            <input
+              type="file"
+              accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </label>
+
+          {/* Mic Record Buttons */}
+          {isRecording ? (
+            <button
+              onClick={stopRecording}
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-all animate-pulse"
+            >
+              <Square className="w-4 h-4" />
+              <span>Stop Recording ({recordingSeconds}s)</span>
+            </button>
+          ) : (
+            <button
+              onClick={startRecording}
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
+            >
+              <Mic className="w-4 h-4 text-rose-400" />
+              <span>Record Audio</span>
+            </button>
+          )}
+
+          {/* Transcribe Action Button */}
+          <button
+            onClick={handleTranscribe}
+            disabled={!selectedFile || isTranscribing}
+            className={`inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+              !selectedFile || isTranscribing
+                ? 'bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
+            }`}
+          >
+            {isTranscribing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Transcribing with Moonshine...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Transcribe Audio</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Transcription Messages */}
+        {transcriptionSuccess && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+            {transcriptionSuccess}
+          </div>
+        )}
+
+        {transcriptionError && (
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+            {transcriptionError}
           </div>
         )}
       </div>
@@ -245,7 +423,10 @@ export const MeetingDetails: React.FC = () => {
               ) : (
                 <ul className="space-y-2">
                   {blockers.map((blocker, i) => (
-                    <li key={i} className="p-3 rounded-xl bg-rose-950/20 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2">
+                    <li
+                      key={i}
+                      className="p-3 rounded-xl bg-rose-950/20 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2"
+                    >
                       <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
                       <span>{blocker}</span>
                     </li>
@@ -265,7 +446,10 @@ export const MeetingDetails: React.FC = () => {
               ) : (
                 <ul className="space-y-2">
                   {risks.map((risk, i) => (
-                    <li key={i} className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 text-amber-300 text-xs flex items-center space-x-2">
+                    <li
+                      key={i}
+                      className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 text-amber-300 text-xs flex items-center space-x-2"
+                    >
                       <AlertOctagon className="w-4 h-4 text-amber-400 shrink-0" />
                       <span>{risk}</span>
                     </li>
@@ -296,7 +480,9 @@ export const MeetingDetails: React.FC = () => {
           <div className="p-8 text-center border-2 border-dashed border-slate-800/80 rounded-2xl bg-slate-950/40">
             <p className="text-slate-400 text-sm">No tasks extracted for this meeting yet.</p>
             {!isAnalyzed && (
-              <p className="text-slate-500 text-xs mt-1">Click "Analyze Meeting with AI" to extract actionable tasks.</p>
+              <p className="text-slate-500 text-xs mt-1">
+                Click "Analyze Meeting with AI" to extract actionable tasks.
+              </p>
             )}
           </div>
         ) : (
@@ -314,14 +500,14 @@ export const MeetingDetails: React.FC = () => {
         )}
       </div>
 
-      {/* Raw Transcript View */}
+      {/* Raw / Generated Transcript View */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-3">
         <div className="flex items-center space-x-2 text-slate-400">
           <FileText className="w-5 h-5" />
-          <h3 className="font-bold text-base text-white">Raw Meeting Transcript</h3>
+          <h3 className="font-bold text-base text-white">Meeting Transcript</h3>
         </div>
         <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
-          {meeting.transcript}
+          {meeting.transcript || 'No transcript available.'}
         </pre>
       </div>
     </div>

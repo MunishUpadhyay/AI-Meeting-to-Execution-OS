@@ -111,3 +111,10 @@ export interface ProjectRisksResponse {
   risks: Risk[];
 }
 
+export interface MeetingTranscribeResponse {
+  meeting_id: number;
+  transcript: string;
+  status: string;
+}
+
+

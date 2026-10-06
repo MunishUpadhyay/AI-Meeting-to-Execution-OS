@@ -8,6 +8,7 @@ import type {
   UpdateTaskDTO,
   Decision,
   ProjectRisksResponse,
+  MeetingTranscribeResponse,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -123,6 +124,44 @@ export async function analyzeMeeting(meetingId: number): Promise<MeetingAnalysis
   });
 }
 
+export async function transcribeMeeting(
+  meetingId: number,
+  audioFile: File
+): Promise<MeetingTranscribeResponse> {
+  const url = `${BASE_URL}/meetings/${meetingId}/transcribe`;
+  const formData = new FormData();
+  formData.append('file', audioFile);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let detail = '';
+      try {
+        const errorData = await response.json();
+        detail = errorData.detail || errorData.message || response.statusText;
+      } catch {
+        detail = response.statusText;
+      }
+
+      if (response.status === 503) {
+        throw new APIError('Moonshine speech-to-text service is unavailable.', 503);
+      }
+      throw new APIError(detail || `Transcription failed with status ${response.status}`, response.status);
+    }
+
+    return await response.json();
+  } catch (err) {
+    if (err instanceof APIError) {
+      throw err;
+    }
+    throw new APIError((err as Error).message || 'Audio transcription failed', 500);
+  }
+}
+
 // Tasks API
 export async function getTasks(projectId: number): Promise<Task[]> {
   return request<Task[]>(`/projects/${projectId}/tasks`);
@@ -139,4 +178,5 @@ export async function updateTask(taskId: number, data: UpdateTaskDTO): Promise<T
 export async function getDecisions(meetingId: number): Promise<Decision[]> {
   return request<Decision[]>(`/meetings/${meetingId}/decisions`);
 }
+
 

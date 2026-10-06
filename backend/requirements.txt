@@ -4,7 +4,12 @@ uvicorn==0.54.0
 sqlalchemy==2.0.54
 pydantic==2.13.5
 pydantic-settings==2.15.0
+python-multipart==0.0.12
 
 # Testing & HTTP Client
 pytest==9.1.1
 httpx==0.28.1
+
+# Speech-to-Text Integration (Moonshine)
+useful-moonshine==20241016
+
