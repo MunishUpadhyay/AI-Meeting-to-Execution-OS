@@ -67,12 +67,12 @@ AI Analysis
 
 ## Current Status
 
-`Phase 0 — Project Initialization`
+`Phase 1 — Backend Foundation`
 
 ## Roadmap
 
 - [x] **Phase 0 — Project Initialization**
-- [ ] **Phase 1 — Backend Foundation**
+- [x] **Phase 1 — Backend Foundation**
 - [ ] **Phase 2 — AI Extraction Pipeline**
 - [ ] **Phase 3 — Frontend Dashboard**
 - [ ] **Phase 4 — Execution & Risk Intelligence**
@@ -80,6 +80,43 @@ AI Analysis
 - [ ] **Phase 6 — RAG / Historical Meeting Intelligence**
 - [ ] **Phase 7 — ML-based Delay Prediction**
 - [ ] **Phase 8 — Final Integration / Testing / Deployment**
+
+## Backend Setup & Execution
+
+### 1. Virtual Environment & Dependencies
+
+Navigate to the `backend` directory and activate the project virtual environment:
+
+```bash
+# Windows
+cd backend
+.\.venv\Scripts\activate
+
+# Install / update dependencies if needed
+pip install -r requirements.txt
+```
+
+### 2. Database
+
+The backend uses SQLite (`meeting_execution.db`) by default. Tables (`projects`, `meetings`, `tasks`, `decisions`) are initialized automatically when the FastAPI application starts. The database file is ignored by Git.
+
+### 3. Starting the Backend Server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### 4. Interactive API Documentation
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
+
+### 5. Running Tests
+
+```bash
+pytest
+```
 
 ## Repository Structure
 
