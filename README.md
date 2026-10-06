@@ -67,13 +67,13 @@ AI Analysis
 
 ## Current Status
 
-`Phase 1 — Backend Foundation`
+`Phase 2 — AI Extraction Pipeline`
 
 ## Roadmap
 
 - [x] **Phase 0 — Project Initialization**
 - [x] **Phase 1 — Backend Foundation**
-- [ ] **Phase 2 — AI Extraction Pipeline**
+- [x] **Phase 2 — AI Extraction Pipeline**
 - [ ] **Phase 3 — Frontend Dashboard**
 - [ ] **Phase 4 — Execution & Risk Intelligence**
 - [ ] **Phase 5 — Moonshine Speech Integration**
@@ -81,24 +81,33 @@ AI Analysis
 - [ ] **Phase 7 — ML-based Delay Prediction**
 - [ ] **Phase 8 — Final Integration / Testing / Deployment**
 
-## Backend Setup & Execution
+## Backend & AI Setup
 
-### 1. Virtual Environment & Dependencies
+### 1. Virtual Environment & Environment Variables
 
 Navigate to the `backend` directory and activate the project virtual environment:
 
 ```bash
-# Windows
 cd backend
 .\.venv\Scripts\activate
-
-# Install / update dependencies if needed
-pip install -r requirements.txt
 ```
 
-### 2. Database
+Ensure environment variables in `backend/.env` (or `.env.example`) are configured:
 
-The backend uses SQLite (`meeting_execution.db`) by default. Tables (`projects`, `meetings`, `tasks`, `decisions`) are initialized automatically when the FastAPI application starts. The database file is ignored by Git.
+```env
+OLLAMA_BASE_URL="http://localhost:11434"
+OLLAMA_MODEL="qwen2.5:latest"
+OLLAMA_TIMEOUT=600
+```
+
+### 2. Ollama Local Setup
+
+Ensure Ollama is installed and running locally with the `qwen2.5` model:
+
+```bash
+ollama serve
+ollama run qwen2.5
+```
 
 ### 3. Starting the Backend Server
 
@@ -112,7 +121,40 @@ uvicorn app.main:app --reload
 - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 - **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
 
-### 5. Running Tests
+### 5. Analyzing a Meeting Transcript
+
+Trigger AI extraction on any meeting with a transcript:
+
+```bash
+POST http://localhost:8000/meetings/1/analyze
+```
+
+Example JSON Response:
+
+```json
+{
+  "meeting_id": 1,
+  "summary": "The team discussed the payment gateway launch and decided to use FastAPI for the backend.",
+  "decisions": [
+    {
+      "content": "The team decided to use FastAPI for the backend."
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Implement the payment API",
+      "owner": "Rahul",
+      "deadline": "2026-10-08",
+      "priority": "MEDIUM",
+      "dependency": "Complete the database schema"
+    }
+  ],
+  "blockers": [],
+  "risks": []
+}
+```
+
+### 6. Running Tests
 
 ```bash
 pytest

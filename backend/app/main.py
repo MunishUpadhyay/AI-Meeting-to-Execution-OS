@@ -8,6 +8,7 @@ from app.api.routes import (
     meetings_router,
     tasks_router,
     decisions_router,
+    analysis_router,
 )
 
 # Automatically create database tables for MVP
@@ -27,3 +28,4 @@ app.include_router(projects_router)
 app.include_router(meetings_router)
 app.include_router(tasks_router)
 app.include_router(decisions_router)
+app.include_router(analysis_router)
