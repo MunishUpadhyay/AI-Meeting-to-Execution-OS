@@ -67,19 +67,59 @@ AI Analysis
 
 ## Current Status
 
-`Phase 2 — AI Extraction Pipeline`
+`Phase 3 — React Dashboard & Frontend Integration`
 
 ## Roadmap
 
 - [x] **Phase 0 — Project Initialization**
 - [x] **Phase 1 — Backend Foundation**
 - [x] **Phase 2 — AI Extraction Pipeline**
-- [ ] **Phase 3 — Frontend Dashboard**
+- [x] **Phase 3 — Frontend Dashboard**
 - [ ] **Phase 4 — Execution & Risk Intelligence**
 - [ ] **Phase 5 — Moonshine Speech Integration**
 - [ ] **Phase 6 — RAG / Historical Meeting Intelligence**
 - [ ] **Phase 7 — ML-based Delay Prediction**
 - [ ] **Phase 8 — Final Integration / Testing / Deployment**
+
+## Frontend Setup & Execution
+
+### 1. Installation & Environment
+
+Navigate to the `frontend` directory:
+
+```bash
+cd frontend
+npm install
+```
+
+Ensure environment variables in `frontend/.env` (or `.env.example`) are configured:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+### 2. Starting the Frontend Dev Server
+
+```bash
+npm run dev
+```
+
+The React dashboard will start at: [http://localhost:5173](http://localhost:5173).
+
+### 3. Frontend Routes & Views
+
+- `/` — **Dashboard**: Project list, statistics, project creation modal.
+- `/projects/:projectId` — **Project Details**: Project overview, meeting cards, tasks preview.
+- `/projects/:projectId/meetings/:meetingId` — **Meeting Details**: Transcript, AI executive summary, extracted decisions, tasks & risk indicators, live AI analysis trigger.
+- `/projects/:projectId/tasks` — **Task Board**: Interactive Kanban board (TODO, IN_PROGRESS, BLOCKED, DONE) with inline status updates.
+
+### 4. Meeting Analysis Workflow
+
+1. Open a project on the Dashboard.
+2. Click **Create Meeting**, provide a title, and paste the meeting transcript text.
+3. Open the created meeting and click **Analyze Meeting with AI**.
+4. The frontend triggers `POST /meetings/{id}/analyze` against FastAPI and local Ollama (`qwen2.5`).
+5. After analysis finishes, extracted tasks, decisions, summary, blockers, and risks update live in the UI.
 
 ## Backend & AI Setup
 
@@ -157,7 +197,11 @@ Example JSON Response:
 ### 6. Running Tests
 
 ```bash
+# Backend Pytest Suite
 pytest
+
+# Frontend Production Build Check
+cd frontend && npm run build
 ```
 
 ## Repository Structure
