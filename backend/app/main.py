@@ -9,6 +9,7 @@ from app.api.routes import (
     tasks_router,
     decisions_router,
     analysis_router,
+    risks_router,
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,3 +47,5 @@ app.include_router(meetings_router)
 app.include_router(tasks_router)
 app.include_router(decisions_router)
 app.include_router(analysis_router)
+app.include_router(risks_router)
+

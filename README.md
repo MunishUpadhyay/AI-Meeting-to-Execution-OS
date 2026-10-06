@@ -67,7 +67,7 @@ AI Analysis
 
 ## Current Status
 
-`Phase 3 — React Dashboard & Frontend Integration`
+`Phase 4 — Execution & Risk Intelligence`
 
 ## Roadmap
 
@@ -75,11 +75,21 @@ AI Analysis
 - [x] **Phase 1 — Backend Foundation**
 - [x] **Phase 2 — AI Extraction Pipeline**
 - [x] **Phase 3 — Frontend Dashboard**
-- [ ] **Phase 4 — Execution & Risk Intelligence**
+- [x] **Phase 4 — Execution & Risk Intelligence**
 - [ ] **Phase 5 — Moonshine Speech Integration**
 - [ ] **Phase 6 — RAG / Historical Meeting Intelligence**
 - [ ] **Phase 7 — ML-based Delay Prediction**
 - [ ] **Phase 8 — Final Integration / Testing / Deployment**
+
+## Execution & Risk Engine (Phase 4)
+
+A deterministic, explainable rule engine evaluates project task state dynamically on demand (`GET /projects/{id}/risks`) without needing LLM inference:
+- **`BLOCKED_TASK`** (HIGH): Tasks marked as `BLOCKED`.
+- **`OVERDUE_TASK`** (HIGH): Incomplete tasks past their deadline.
+- **`DEPENDENCY_RISK`** (HIGH) / **`UNRESOLVED_DEPENDENCY_REFERENCE`** (MEDIUM): Dependency evaluation against project task titles.
+- **`APPROACHING_DEADLINE`** (MEDIUM): Deadlines approaching within 2 days.
+- **`HIGH_PRIORITY_INCOMPLETE`** (MEDIUM): High priority tasks still incomplete.
+
 
 ## Frontend Setup & Execution
 

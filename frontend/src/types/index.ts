@@ -72,3 +72,42 @@ export interface UpdateTaskDTO {
   status?: TaskStatus;
   dependency?: string | null;
 }
+
+export type RiskSeverity = 'HIGH' | 'MEDIUM';
+
+export type RiskType =
+  | 'BLOCKED_TASK'
+  | 'OVERDUE_TASK'
+  | 'DEPENDENCY_RISK'
+  | 'UNRESOLVED_DEPENDENCY_REFERENCE'
+  | 'APPROACHING_DEADLINE'
+  | 'HIGH_PRIORITY_INCOMPLETE';
+
+export interface Risk {
+  type: RiskType;
+  severity: RiskSeverity;
+  title: string;
+  description: string;
+  related_task_id: number;
+  related_task_title: string;
+  dependency_task_id?: number | null;
+  dependency_task_title?: string | null;
+}
+
+export interface ProjectRiskSummary {
+  total_tasks: number;
+  completed_tasks: number;
+  in_progress_tasks: number;
+  blocked_tasks: number;
+  overdue_tasks: number;
+  risk_count: number;
+  high_risk_count: number;
+  medium_risk_count: number;
+}
+
+export interface ProjectRisksResponse {
+  project_id: number;
+  summary: ProjectRiskSummary;
+  risks: Risk[];
+}
+

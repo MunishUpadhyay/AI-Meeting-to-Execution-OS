@@ -1,18 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Folder, ArrowRight, Calendar } from 'lucide-react';
+import { Folder, ArrowRight, Calendar, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { Project } from '../types';
 
 interface ProjectCardProps {
   project: Project;
   meetingCount?: number;
   taskCount?: number;
+  riskCount?: number;
+  highRiskCount?: number;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   meetingCount = 0,
   taskCount = 0,
+  riskCount,
+  highRiskCount,
 }) => {
   const formattedDate = new Date(project.created_at).toLocaleDateString('en-US', {
     month: 'short',
@@ -27,10 +31,32 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 group-hover:bg-indigo-600 group-hover:text-white transition-all">
             <Folder className="w-6 h-6" />
           </div>
-          <span className="flex items-center space-x-1 text-xs text-slate-500 font-mono">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{formattedDate}</span>
-          </span>
+
+          <div className="flex items-center space-x-2">
+            {riskCount !== undefined && (
+              highRiskCount && highRiskCount > 0 ? (
+                <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Risk: {highRiskCount} High</span>
+                </span>
+              ) : riskCount > 0 ? (
+                <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Risk: {riskCount} Medium</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>No Risks</span>
+                </span>
+              )
+            )}
+
+            <span className="flex items-center space-x-1 text-xs text-slate-500 font-mono">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{formattedDate}</span>
+            </span>
+          </div>
         </div>
 
         <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors">
@@ -46,11 +72,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="grid grid-cols-2 gap-3 mb-6 pt-4 border-t border-slate-800/80">
           <div className="bg-slate-950/60 rounded-xl p-2.5 text-center border border-slate-800/40">
             <span className="block text-lg font-bold text-slate-100">{meetingCount}</span>
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Meetings</span>
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+              Meetings
+            </span>
           </div>
           <div className="bg-slate-950/60 rounded-xl p-2.5 text-center border border-slate-800/40">
             <span className="block text-lg font-bold text-slate-100">{taskCount}</span>
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Tasks</span>
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+              Tasks
+            </span>
           </div>
         </div>
 

@@ -8,6 +8,13 @@ from app.schemas.ai_extraction import (
     AnalysisResult,
     MeetingAnalysisResponse,
 )
+from app.schemas.risk import (
+    RiskSeverity,
+    RiskType,
+    Risk,
+    ProjectRiskSummary,
+    ProjectRisksResponse,
+)
 
 __all__ = [
     "ProjectCreate",
@@ -26,4 +33,10 @@ __all__ = [
     "TaskExtraction",
     "AnalysisResult",
     "MeetingAnalysisResponse",
+    "RiskSeverity",
+    "RiskType",
+    "Risk",
+    "ProjectRiskSummary",
+    "ProjectRisksResponse",
 ]
+

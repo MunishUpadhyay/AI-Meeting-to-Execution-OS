@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, FolderKanban, Sparkles, ShieldAlert } from 'lucide-react';
-import { getProjects, createProject, getMeetings, getTasks } from '../services/api';
+import { getProjects, createProject, getMeetings, getTasks, getProjectRisks } from '../services/api';
 import type { Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { LoadingState } from '../components/LoadingState';
@@ -8,7 +8,9 @@ import { EmptyState } from '../components/EmptyState';
 
 export const Dashboard: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [countsMap, setCountsMap] = useState<Record<number, { meetings: number; tasks: number }>>({});
+  const [countsMap, setCountsMap] = useState<
+    Record<number, { meetings: number; tasks: number; riskCount: number; highRiskCount: number }>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,15 +28,27 @@ export const Dashboard: React.FC = () => {
       const data = await getProjects();
       setProjects(data);
 
-      // Fetch meeting and task counts for each project in parallel
-      const counts: Record<number, { meetings: number; tasks: number }> = {};
+      // Fetch meeting, task, and risk counts for each project in parallel
+      const counts: Record<
+        number,
+        { meetings: number; tasks: number; riskCount: number; highRiskCount: number }
+      > = {};
       await Promise.all(
         data.map(async (p) => {
           try {
-            const [mList, tList] = await Promise.all([getMeetings(p.id), getTasks(p.id)]);
-            counts[p.id] = { meetings: mList.length, tasks: tList.length };
+            const [mList, tList, risksData] = await Promise.all([
+              getMeetings(p.id),
+              getTasks(p.id),
+              getProjectRisks(p.id),
+            ]);
+            counts[p.id] = {
+              meetings: mList.length,
+              tasks: tList.length,
+              riskCount: risksData.summary.risk_count,
+              highRiskCount: risksData.summary.high_risk_count,
+            };
           } catch {
-            counts[p.id] = { meetings: 0, tasks: 0 };
+            counts[p.id] = { meetings: 0, tasks: 0, riskCount: 0, highRiskCount: 0 };
           }
         })
       );
@@ -66,7 +80,10 @@ export const Dashboard: React.FC = () => {
       });
 
       setProjects((prev) => [newProj, ...prev]);
-      setCountsMap((prev) => ({ ...prev, [newProj.id]: { meetings: 0, tasks: 0 } }));
+      setCountsMap((prev) => ({
+        ...prev,
+        [newProj.id]: { meetings: 0, tasks: 0, riskCount: 0, highRiskCount: 0 },
+      }));
       setProjectName('');
       setProjectDesc('');
       setShowModal(false);
@@ -87,10 +104,14 @@ export const Dashboard: React.FC = () => {
             <span>AI Meeting-to-Execution OS</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-3">
-            Transform Conversations into <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Executable Intelligence</span>
+            Transform Conversations into{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
+              Executable Intelligence
+            </span>
           </h1>
           <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            Ingest meeting transcripts, run local LLM analysis via Ollama, extract actionable tasks with assignees, deadlines & dependencies, and manage project execution.
+            Ingest meeting transcripts, run local LLM analysis via Ollama, extract actionable tasks
+            with assignees, deadlines & dependencies, and manage project execution with deterministic risk analysis.
           </p>
           <button
             onClick={() => setShowModal(true)}
@@ -108,7 +129,9 @@ export const Dashboard: React.FC = () => {
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Active Projects</h2>
-          <p className="text-slate-400 text-xs mt-0.5">Select a project to view meetings, AI analysis, and task boards.</p>
+          <p className="text-slate-400 text-xs mt-0.5">
+            Select a project to view meetings, AI analysis, execution risks, and task boards.
+          </p>
         </div>
         {projects.length > 0 && (
           <button
@@ -148,6 +171,8 @@ export const Dashboard: React.FC = () => {
               project={project}
               meetingCount={countsMap[project.id]?.meetings || 0}
               taskCount={countsMap[project.id]?.tasks || 0}
+              riskCount={countsMap[project.id]?.riskCount}
+              highRiskCount={countsMap[project.id]?.highRiskCount}
             />
           ))}
         </div>
@@ -159,7 +184,9 @@ export const Dashboard: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
             <div>
               <h3 className="text-xl font-bold text-white">Create New Project</h3>
-              <p className="text-slate-400 text-xs mt-1">Set up a workspace to organize your team's meetings and tasks.</p>
+              <p className="text-slate-400 text-xs mt-1">
+                Set up a workspace to organize your team's meetings and tasks.
+              </p>
             </div>
 
             {modalError && (

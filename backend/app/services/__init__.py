@@ -6,6 +6,7 @@ from app.services.ai_service import (
     AIServiceTimeoutException,
     AIInvalidOutputException,
 )
+from app.services.risk_engine import RiskEngine
 
 __all__ = [
     "ai_service",
@@ -14,4 +15,6 @@ __all__ = [
     "AIServiceUnavailableException",
     "AIServiceTimeoutException",
     "AIInvalidOutputException",
+    "RiskEngine",
 ]
+

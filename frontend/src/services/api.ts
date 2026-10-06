@@ -7,6 +7,7 @@ import type {
   Task,
   UpdateTaskDTO,
   Decision,
+  ProjectRisksResponse,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -95,6 +96,11 @@ export async function deleteProject(projectId: number): Promise<void> {
   });
 }
 
+// Risks API
+export async function getProjectRisks(projectId: number): Promise<ProjectRisksResponse> {
+  return request<ProjectRisksResponse>(`/projects/${projectId}/risks`);
+}
+
 // Meetings API
 export async function getMeetings(projectId: number): Promise<Meeting[]> {
   return request<Meeting[]>(`/projects/${projectId}/meetings`);
@@ -133,3 +139,4 @@ export async function updateTask(taskId: number, data: UpdateTaskDTO): Promise<T
 export async function getDecisions(meetingId: number): Promise<Decision[]> {
   return request<Decision[]>(`/meetings/${meetingId}/decisions`);
 }
+
