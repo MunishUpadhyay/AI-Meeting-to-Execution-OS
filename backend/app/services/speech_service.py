@@ -27,30 +27,21 @@ class SpeechService:
     def __init__(self, model_name: str = "moonshine/tiny"):
         self.model_name = model_name
         self._model_loaded = False
+        self._moonshine = None
 
     def _load_model(self):
-        if self._model_loaded:
+        if self._model_loaded and self._moonshine is not None:
             return
         try:
-            import moonshine  # useful-moonshine package
+            import moonshine_onnx
 
+            self._moonshine = moonshine_onnx
             self._model_loaded = True
-            logger.info("Moonshine speech-to-text engine initialized successfully.")
-        except ImportError:
-            try:
-                import moonshine_onnx as moonshine
-
-                self._model_loaded = True
-                logger.info("Moonshine ONNX engine initialized successfully.")
-            except ImportError as exc:
-                logger.error("Failed to import Moonshine speech engine: %s", exc)
-                raise SpeechServiceUnavailableException(
-                    "Moonshine speech-to-text package is not installed or unavailable."
-                ) from exc
+            logger.info("Moonshine ONNX speech-to-text engine initialized successfully.")
         except Exception as exc:
-            logger.error("Failed to initialize Moonshine speech engine: %s", exc)
+            logger.error("Failed to initialize Moonshine ONNX speech engine: %s", exc)
             raise SpeechServiceUnavailableException(
-                f"Speech service initialization failed: {exc}"
+                f"Moonshine ONNX speech service is unavailable: {exc}"
             ) from exc
 
     def transcribe_audio(self, audio_path: str | Path) -> str:
@@ -64,10 +55,7 @@ class SpeechService:
         self._load_model()
 
         try:
-            import moonshine
-
-            # Perform local speech-to-text transcription
-            result = moonshine.transcribe(audio_path_str, self.model_name)
+            result = self._moonshine.transcribe(audio_path_str, self.model_name)
 
             if isinstance(result, (list, tuple)):
                 transcript = " ".join(str(item).strip() for item in result if str(item).strip()).strip()

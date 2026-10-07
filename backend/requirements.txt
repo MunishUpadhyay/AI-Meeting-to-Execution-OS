@@ -10,6 +10,6 @@ python-multipart==0.0.12
 pytest==9.1.1
 httpx==0.28.1
 
-# Speech-to-Text Integration (Moonshine)
-useful-moonshine==20241016
+# Speech-to-Text Integration (Moonshine ONNX)
+useful-moonshine-onnx==20251121
 

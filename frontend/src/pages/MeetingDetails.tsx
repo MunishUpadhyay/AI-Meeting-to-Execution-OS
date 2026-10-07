@@ -138,11 +138,35 @@ export const MeetingDetails: React.FC = () => {
   };
 
 
+const getSupportedAudioMimeType = (): { mimeType: string; extension: string } => {
+  const candidates = [
+    { mimeType: 'audio/webm;codecs=opus', extension: 'webm' },
+    { mimeType: 'audio/webm', extension: 'webm' },
+    { mimeType: 'audio/ogg;codecs=opus', extension: 'ogg' },
+    { mimeType: 'audio/mp4', extension: 'mp4' },
+    { mimeType: 'audio/wav', extension: 'wav' },
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(candidate.mimeType)) {
+      return candidate;
+    }
+  }
+
+  return { mimeType: 'audio/webm', extension: 'webm' };
+};
+
   // Browser Microphone Recording
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const { mimeType, extension } = getSupportedAudioMimeType();
+      const options: MediaRecorderOptions = {};
+      if (mimeType && typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mimeType)) {
+        options.mimeType = mimeType;
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -153,9 +177,10 @@ export const MeetingDetails: React.FC = () => {
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const recordedFile = new File([audioBlob], `recorded_audio_${Date.now()}.wav`, {
-          type: 'audio/wav',
+        const actualMimeType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
+        const recordedFile = new File([audioBlob], `recorded_audio_${Date.now()}.${extension}`, {
+          type: actualMimeType,
         });
         setSelectedFile(recordedFile);
         stream.getTracks().forEach((track) => track.stop());
@@ -336,7 +361,7 @@ export const MeetingDetails: React.FC = () => {
         </div>
 
         <p className="text-xs text-slate-400">
-          Upload an audio recording (.wav, .mp3, .m4a, .ogg) or use browser microphone recording to generate a transcript locally.
+          Upload an audio recording (.wav, .mp3, .m4a, .ogg, .webm, .flac, .aac) or use browser microphone recording to generate a transcript locally.
         </p>
 
         <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -346,7 +371,7 @@ export const MeetingDetails: React.FC = () => {
             <span>{selectedFile ? selectedFile.name : 'Choose Audio File'}</span>
             <input
               type="file"
-              accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm"
+              accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac,.aac"
               onChange={handleFileChange}
               className="hidden"
             />
