@@ -8,6 +8,12 @@ class MeetingCreate(BaseModel):
     summary: str | None = None
 
 
+class MeetingUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1)
+    transcript: str | None = None
+    summary: str | None = None
+
+
 class MeetingResponse(BaseModel):
     id: int
     project_id: int
@@ -17,3 +23,4 @@ class MeetingResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+

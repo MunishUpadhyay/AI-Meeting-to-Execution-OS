@@ -67,7 +67,7 @@ AI Analysis
 
 ## Current Status
 
-`Phase 5 — Local Speech-to-Text Integration`
+`Phase 6 — Final Integration & Demo Hardening (Complete MVP)`
 
 ## Roadmap
 
@@ -77,17 +77,30 @@ AI Analysis
 - [x] **Phase 3 — Frontend Dashboard**
 - [x] **Phase 4 — Execution & Risk Intelligence**
 - [x] **Phase 5 — Local Speech-to-Text Integration**
-- [ ] **Phase 6 — RAG / Historical Meeting Intelligence**
-- [ ] **Phase 7 — ML-based Delay Prediction**
-- [ ] **Phase 8 — Final Integration / Testing / Deployment**
+- [x] **Phase 6 — Final Integration & Demo Hardening**
+- [ ] **Phase 7 — Future Scope (RAG, Vector DB, ML Delay Prediction)**
+
+## Live Demonstration Sequence
+
+1. **Dashboard Overview:** Open `http://localhost:5173`. Inspect active projects, statistics, and lightweight risk badges.
+2. **Create Project Workspace:** Click **Create New Project** (e.g., *"Payment Gateway Launch"*).
+3. **Create Meeting:** Click **Create Meeting**, provide a meeting title, and choose input method:
+   - **Path A (Text):** Paste raw text transcript directly into the form.
+   - **Path B (Audio):** Upload a short `.wav`/`.mp3` file or click **Record Audio** using browser microphone.
+4. **Transcribe Audio (Path B):** Click **Transcribe Audio** with Moonshine. Review the generated transcript locally.
+5. **Inspect / Edit Transcript:** Click **Edit Transcript** to fine-tune transcript text prior to AI extraction.
+6. **Trigger AI Analysis:** Click **Analyze Meeting with AI**. Local Qwen 2.5 processes transcript via Ollama.
+7. **Inspect Extracted Artifacts:** Review AI Executive Summary, Extracted Decisions, Blockers, Risks, and Tasks (with assignees, deadlines, priorities & dependencies).
+8. **View Execution Risks:** Return to Project Details to view the **RiskPanel** displaying dynamic risk cards (`OVERDUE_TASK`, `BLOCKED_TASK`, `DEPENDENCY_RISK`, `APPROACHING_DEADLINE`, `HIGH_PRIORITY_INCOMPLETE`).
+9. **Interactive Task Board:** Open Task Board. Update task status (e.g. `TODO` → `IN_PROGRESS` → `DONE`).
+10. **Dynamic Risk Update:** Return to Project Details to verify completed tasks automatically clear corresponding execution risks.
 
 ## Speech-to-Text Integration (Phase 5)
 
 A local, privacy-focused speech recognition pipeline powered by Useful Sensors' **Moonshine** engine:
 - **`POST /meetings/{id}/transcribe`**: Accepts uploaded audio files (`.wav`, `.mp3`, `.m4a`, `.ogg`, `.webm`) or live browser mic recordings.
 - **Transcript Generation**: Converts speech to text locally on CPU without external cloud APIs.
-- **Seamless Convergence**: The generated transcript updates `Meeting.transcript`, allowing users to review before running Qwen 2.5 AI extraction.
-
+- **Seamless Convergence**: The generated transcript updates `Meeting.transcript`, allowing users to review/edit before running Qwen 2.5 AI extraction.
 
 ## Execution & Risk Engine (Phase 4)
 
@@ -97,6 +110,7 @@ A deterministic, explainable rule engine evaluates project task state dynamicall
 - **`DEPENDENCY_RISK`** (HIGH) / **`UNRESOLVED_DEPENDENCY_REFERENCE`** (MEDIUM): Dependency evaluation against project task titles.
 - **`APPROACHING_DEADLINE`** (MEDIUM): Deadlines approaching within 2 days.
 - **`HIGH_PRIORITY_INCOMPLETE`** (MEDIUM): High priority tasks still incomplete.
+
 
 
 ## Frontend Setup & Execution

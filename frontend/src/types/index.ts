@@ -64,6 +64,13 @@ export interface CreateMeetingDTO {
   transcript: string;
 }
 
+export interface UpdateMeetingDTO {
+  title?: string;
+  transcript?: string;
+  summary?: string | null;
+}
+
+
 export interface UpdateTaskDTO {
   title?: string;
   owner?: string | null;

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Meeting
-from app.schemas import MeetingCreate, MeetingResponse, MeetingTranscribeResponse
+from app.schemas import MeetingCreate, MeetingUpdate, MeetingResponse, MeetingTranscribeResponse
 from app.services.speech_service import (
     speech_service,
     SpeechServiceException,
@@ -60,6 +60,25 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
             detail=f"Meeting with ID {meeting_id} not found"
         )
     return meeting
+
+
+@router.patch("/meetings/{meeting_id}", response_model=MeetingResponse)
+def update_meeting(meeting_id: int, meeting_in: MeetingUpdate, db: Session = Depends(get_db)):
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meeting with ID {meeting_id} not found"
+        )
+
+    update_data = meeting_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(meeting, field, value)
+
+    db.commit()
+    db.refresh(meeting)
+    return meeting
+
 
 
 @router.post("/meetings/{meeting_id}/transcribe", response_model=MeetingTranscribeResponse, status_code=status.HTTP_200_OK)

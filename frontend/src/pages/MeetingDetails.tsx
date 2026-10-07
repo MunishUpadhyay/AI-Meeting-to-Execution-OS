@@ -15,8 +15,10 @@ import {
   Square,
   Upload,
   FileAudio,
+  Edit3,
+  Save,
 } from 'lucide-react';
-import { getMeeting, analyzeMeeting, getDecisions, getTasks, transcribeMeeting } from '../services/api';
+import { getMeeting, analyzeMeeting, getDecisions, getTasks, transcribeMeeting, updateMeeting } from '../services/api';
 import type { Meeting, Task, Decision, MeetingAnalysisResponse } from '../types';
 import { DecisionList } from '../components/DecisionList';
 import { TaskCard } from '../components/TaskCard';
@@ -46,6 +48,12 @@ export const MeetingDetails: React.FC = () => {
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
   const [transcriptionSuccess, setTranscriptionSuccess] = useState<string | null>(null);
 
+  // Transcript Editing State
+  const [isEditingTranscript, setIsEditingTranscript] = useState(false);
+  const [editedTranscript, setEditedTranscript] = useState('');
+  const [isSavingTranscript, setIsSavingTranscript] = useState(false);
+  const [transcriptSaveSuccess, setTranscriptSaveSuccess] = useState<string | null>(null);
+
   // Browser Mic Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -64,6 +72,7 @@ export const MeetingDetails: React.FC = () => {
         getTasks(pId),
       ]);
       setMeeting(meetData);
+      setEditedTranscript(meetData.transcript || '');
       setDecisions(decData);
 
       // Filter tasks associated with this meeting
@@ -75,6 +84,7 @@ export const MeetingDetails: React.FC = () => {
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     loadData();
@@ -100,6 +110,7 @@ export const MeetingDetails: React.FC = () => {
     try {
       const response = await transcribeMeeting(mId, selectedFile);
       setMeeting((prev) => (prev ? { ...prev, transcript: response.transcript } : prev));
+      setEditedTranscript(response.transcript);
       setTranscriptionSuccess('✓ Audio transcribed successfully using local Moonshine engine!');
       setSelectedFile(null);
     } catch (err) {
@@ -108,6 +119,24 @@ export const MeetingDetails: React.FC = () => {
       setIsTranscribing(false);
     }
   };
+
+  const handleSaveTranscript = async () => {
+    if (isSavingTranscript || isNaN(mId)) return;
+    setIsSavingTranscript(true);
+    setTranscriptSaveSuccess(null);
+    try {
+      const updated = await updateMeeting(mId, { transcript: editedTranscript });
+      setMeeting(updated);
+      setIsEditingTranscript(false);
+      setTranscriptSaveSuccess('✓ Transcript updated successfully.');
+      setTimeout(() => setTranscriptSaveSuccess(null), 3000);
+    } catch (err) {
+      setTranscriptionError((err as Error).message || 'Failed to update transcript.');
+    } finally {
+      setIsSavingTranscript(false);
+    }
+  };
+
 
   // Browser Microphone Recording
   const startRecording = async () => {
@@ -501,15 +530,76 @@ export const MeetingDetails: React.FC = () => {
       </div>
 
       {/* Raw / Generated Transcript View */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-3">
-        <div className="flex items-center space-x-2 text-slate-400">
-          <FileText className="w-5 h-5" />
-          <h3 className="font-bold text-base text-white">Meeting Transcript</h3>
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center space-x-2 text-slate-400">
+            <FileText className="w-5 h-5 text-indigo-400" />
+            <h3 className="font-bold text-base text-white">Meeting Transcript</h3>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {transcriptSaveSuccess && (
+              <span className="text-xs text-emerald-400 font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                {transcriptSaveSuccess}
+              </span>
+            )}
+
+            {isEditingTranscript ? (
+              <button
+                onClick={handleSaveTranscript}
+                disabled={isSavingTranscript}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all shadow-md"
+              >
+                {isSavingTranscript ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>Save Transcript</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setEditedTranscript(meeting.transcript || '');
+                  setIsEditingTranscript(true);
+                }}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Edit Transcript</span>
+              </button>
+            )}
+          </div>
         </div>
-        <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
-          {meeting.transcript || 'No transcript available.'}
-        </pre>
+
+        {isEditingTranscript ? (
+          <div className="space-y-3">
+            <textarea
+              value={editedTranscript}
+              onChange={(e) => setEditedTranscript(e.target.value)}
+              rows={8}
+              placeholder="Edit or paste meeting transcript conversation here..."
+              className="w-full bg-slate-950 border border-indigo-500/50 rounded-2xl p-4 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-400 transition-colors resize-y leading-relaxed"
+            />
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                onClick={() => {
+                  setIsEditingTranscript(false);
+                  setEditedTranscript(meeting.transcript || '');
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+            {meeting.transcript || 'No transcript available. Upload an audio recording above or edit this transcript.'}
+          </pre>
+        )}
       </div>
+
     </div>
   );
 };

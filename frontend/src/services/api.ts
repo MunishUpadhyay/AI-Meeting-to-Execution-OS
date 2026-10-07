@@ -3,6 +3,7 @@ import type {
   CreateProjectDTO,
   Meeting,
   CreateMeetingDTO,
+  UpdateMeetingDTO,
   MeetingAnalysisResponse,
   Task,
   UpdateTaskDTO,
@@ -10,6 +11,7 @@ import type {
   ProjectRisksResponse,
   MeetingTranscribeResponse,
 } from '../types';
+
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -117,6 +119,14 @@ export async function createMeeting(projectId: number, data: CreateMeetingDTO): 
 export async function getMeeting(meetingId: number): Promise<Meeting> {
   return request<Meeting>(`/meetings/${meetingId}`);
 }
+
+export async function updateMeeting(meetingId: number, data: UpdateMeetingDTO): Promise<Meeting> {
+  return request<Meeting>(`/meetings/${meetingId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 
 export async function analyzeMeeting(meetingId: number): Promise<MeetingAnalysisResponse> {
   return request<MeetingAnalysisResponse>(`/meetings/${meetingId}/analyze`, {

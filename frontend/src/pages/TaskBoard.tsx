@@ -37,9 +37,14 @@ export const TaskBoard: React.FC = () => {
     loadData();
   }, [pId]);
 
+  const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null);
+
   const handleTaskStatusUpdate = (updatedTask: Task) => {
     setTasks((prevTasks) => prevTasks.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+    setStatusUpdateMessage(`✓ Task "${updatedTask.title}" status updated to ${updatedTask.status}.`);
+    setTimeout(() => setStatusUpdateMessage(null), 3500);
   };
+
 
   if (isLoading) {
     return <LoadingState message="Loading project task board..." />;
@@ -99,7 +104,14 @@ export const TaskBoard: React.FC = () => {
         <p className="text-slate-400 text-sm">
           Track and update task execution status across TODO, IN PROGRESS, BLOCKED, and DONE.
         </p>
+
+        {statusUpdateMessage && (
+          <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold animate-fade-in">
+            {statusUpdateMessage}
+          </div>
+        )}
       </div>
+
 
       {/* Kanban Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
